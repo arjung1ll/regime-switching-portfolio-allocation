@@ -17,68 +17,76 @@ def calculate_cumulative_performance(portfolio_data):
     Assumes a starting value of $1.00.
     """
     print("Calculating cumulative performance metrics...")
-    
-    # (1 + daily_return) cumulative product gives the compounding growth
     portfolio_data['Strategy_Equity'] = (1 + portfolio_data['Strategy_Return']).cumprod()
-    
-    # We use a 100% SPY buy-and-hold as our benchmark to beat
     portfolio_data['Benchmark_Equity'] = (1 + portfolio_data['SPY']).cumprod()
-    
     return portfolio_data
+
+# ---> NEW METRICS FUNCTION ADDED HERE <---
+def print_risk_metrics(portfolio_data):
+    """
+    Calculates and prints the Annualized Sharpe Ratio and Maximum Drawdown.
+    """
+    print("\n=== Risk & Performance Metrics ===")
+    
+    # 1. Calculate Strategy Metrics
+    strat_returns = portfolio_data['Strategy_Return']
+    strat_annual_return = strat_returns.mean() * 252
+    strat_annual_vol = strat_returns.std() * np.sqrt(252)
+    # Assuming risk-free rate is 0% for simplicity
+    strat_sharpe = strat_annual_return / strat_annual_vol 
+    
+    # Calculate Strategy Max Drawdown
+    strat_cum_max = portfolio_data['Strategy_Equity'].cummax()
+    strat_drawdown = (portfolio_data['Strategy_Equity'] - strat_cum_max) / strat_cum_max
+    strat_max_dd = strat_drawdown.min()
+    
+    # 2. Calculate Benchmark (SPY) Metrics
+    bench_returns = portfolio_data['SPY']
+    bench_annual_return = bench_returns.mean() * 252
+    bench_annual_vol = bench_returns.std() * np.sqrt(252)
+    bench_sharpe = bench_annual_return / bench_annual_vol
+    
+    # Calculate Benchmark Max Drawdown
+    bench_cum_max = portfolio_data['Benchmark_Equity'].cummax()
+    bench_drawdown = (portfolio_data['Benchmark_Equity'] - bench_cum_max) / bench_cum_max
+    bench_max_dd = bench_drawdown.min()
+    
+    # 3. Print Results
+    print(f"HMM Strategy -> Sharpe Ratio: {strat_sharpe:.2f} | Max Drawdown: {strat_max_dd*100:.2f}%")
+    print(f"Benchmark    -> Sharpe Ratio: {bench_sharpe:.2f} | Max Drawdown: {bench_max_dd*100:.2f}%\n")
 
 def plot_results(portfolio_data):
     """
     Plots the equity curves and shades the background based on the HMM regime.
     """
     print("Generating performance chart...")
-    
     plt.figure(figsize=(14, 7))
+    plt.plot(portfolio_data.index, portfolio_data['Strategy_Equity'], label='HMM Dynamic Strategy', color='blue', linewidth=1.5)
+    plt.plot(portfolio_data.index, portfolio_data['Benchmark_Equity'], label='Benchmark (100% SPY)', color='gray', linestyle='--', alpha=0.7)
     
-    # Plot the Strategy and the Benchmark
-    plt.plot(portfolio_data.index, portfolio_data['Strategy_Equity'], 
-             label='HMM Dynamic Strategy', color='blue', linewidth=1.5)
-    
-    plt.plot(portfolio_data.index, portfolio_data['Benchmark_Equity'], 
-             label='Benchmark (100% SPY)', color='gray', linestyle='--', alpha=0.7)
-    
-    # Shade the background red when the model is in Regime 1 (Volatile/Bear)
-    # Note: We use max() to ensure the shading covers the whole y-axis height
     max_val = portfolio_data[['Strategy_Equity', 'Benchmark_Equity']].max().max()
+    plt.fill_between(portfolio_data.index, 0, max_val + 1, where=(portfolio_data['Regime'] == 1), color='red', alpha=0.15, label='Detected Volatile Regime')
     
-    plt.fill_between(portfolio_data.index, 0, max_val + 1, 
-                     where=(portfolio_data['Regime'] == 1), 
-                     color='red', alpha=0.15, label='Detected Volatile Regime')
-    
-    # Formatting the chart for a professional tear-sheet look
     plt.title('Multivariate Regime-Switching Asset Allocation', fontsize=16, fontweight='bold')
     plt.xlabel('Date', fontsize=12)
     plt.ylabel('Cumulative Return ($1 Growth)', fontsize=12)
     plt.legend(loc='upper left', frameon=True, shadow=True)
     plt.ylim(0.5, max_val + 0.5) 
     
-    # Save the plot to the folder so it can be uploaded to GitHub
     plt.tight_layout()
     plt.savefig('hmm_performance_chart.png', dpi=300)
-    
-    # Display the chart locally
     plt.show()
 
 if __name__ == "__main__":
     print("=== INITIALIZING QUANTITATIVE PIPELINE ===")
     
-    # 1. Extract
     prices, rets = load_financial_data()
-    
-    # 2. Model
     model, states = train_hmm_model(rets)
-    
-    # 3. Simulate
     portfolio = simulate_portfolio(rets, states)
-    
-    # 4. Evaluate
     portfolio_eval = calculate_cumulative_performance(portfolio)
     
-    # 5. Visualize
-    plot_results(portfolio_eval)
+    # ---> CALLING THE NEW FUNCTION HERE <---
+    print_risk_metrics(portfolio_eval)
     
+    plot_results(portfolio_eval)
     print("=== PIPELINE COMPLETE ===")
