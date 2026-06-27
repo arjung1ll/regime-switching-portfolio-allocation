@@ -21,10 +21,8 @@ The model clusters market regimes by observing real-time, forward-looking sympto
 ## Results
 ![HMM Performance Chart](hmm_performance_chart.png)
 
-*Notice how the model successfully identifies the high-volatility regimes (shaded red), specifically during the 2020 crash and 2022 rate-hike environment, shifting defensive to prioritize capital preservation and minimize maximum drawdown.*
+### Performance Metrics (2010 - 2026)
+* **HMM Strategy:** Sharpe Ratio: 1.11 | Max Drawdown: -22.00%
+* **Benchmark (100% SPY):** Sharpe Ratio: 0.87 | Max Drawdown: -33.72%
 
-## How to Run Locally
-Clone the repository, initialize your virtual environment, and run the following in your terminal:
-```bash
-pip install -r requirements.txt
-python main.py
+*Notice how the model successfully identifies the high-volatility regimes (shaded red), specifically during the 2020 crash and 2022 rate-hike environment. By dynamically shifting defensive (30% SPY / 50% TLT / 20% GLD) during these periods, the algorithm avoided nearly 12% of the benchmark's maximum drawdown while simultaneously improving the overall risk-adjusted return (Sharpe).*
